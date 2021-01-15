@@ -58,12 +58,12 @@
   // browser agnostic orientation
   function getBrowserOrientation() {
     var orientation;
-    if (screen.orientation && screen.orientation.type) {
+    if (screen.orientation && screen.orientation.type) { // screen.orientation.typeに画面の向きが文字列として格納されている
       orientation = screen.orientation.type;
-    } else {
-      orientation = screen.orientation ||
-                    screen.mozOrientation ||
-                    screen.msOrientation;
+    } else {                                    // ||でどれかのプロパティ代入
+      orientation = screen.orientation ||       // chrome
+                    screen.mozOrientation ||    // Firefox
+                    screen.msOrientation;       // IE11
     }
 
     /*
@@ -92,15 +92,15 @@
   }
 
 
-  // browser agnostic orientation unlock
+  // browser agnostic orientation unlock unlock()はScreenOrientationのメソッドでスクリーンの向きの固定を解除する
   function browserUnlockOrientation() {
     if (screen.orientation && screen.orientation.unlock) {
       screen.orientation.unlock();
-    } else if (screen.unlockOrientation) {
-      screen.unlockOrientation();
-    } else if (screen.mozUnlockOrientation) {
+    } else if (screen.unlockOrientation) { // ページやアプリによるすべての画面ロック除去
+      screen.unlockOrientation();          // ScreenOrientation.un.ock()を使うのがよい
+    } else if (screen.mozUnlockOrientation) { // Firefox
       screen.mozUnlockOrientation();
-    } else if (screen.msUnlockOrientation) {
+    } else if (screen.msUnlockOrientation) { // IE
       screen.msUnlockOrientation();
     }
   }
@@ -150,12 +150,12 @@
 
   // called on device orientation change
   function onHeadingChange(event) {
-    var heading = event.alpha;
-
-    if (typeof event.webkitCompassHeading !== "undefined") {
+    var heading = event.alpha; // まず方角にevent.alphaを代入
+    // event.webkitCompassHeadingのデータ型を検証
+    if (typeof event.webkitCompassHeading !== "undefined") { // iOSでwebkitCompassHeadingプロパティがある場合はこちらを代入,
       heading = event.webkitCompassHeading; //iOS non-standard
     }
-
+    // 変数orientationに各ブラウザタイプのorientationを代入する関数を呼び出して代入
     var orientation = getBrowserOrientation();
 
     if (typeof heading !== "undefined" && heading !== null) { // && typeof orientation !== "undefined") {
@@ -163,7 +163,7 @@
 
 
       if (debug) {
-        debugOrientation.textContent = orientation;
+        debugOrientation.textContent = orientation; // 各ブラウザのorientation
       }
 
 
@@ -393,7 +393,36 @@
     debugOrientationDefault.textContent = defaultOrientation;
   }
 
-  window.addEventListener("deviceorientation", onHeadingChange);
+
+      // ここからiOS13対応用分岐　追加
+      // ジャイロセンサーが有効か？
+      if (window.DeviceOrientationEvent) {
+        // iOS13向け：ユーザーにアクセスの許可を求める関数があるか？
+        if(DeviceOrientationEvent.requestPermission) {
+          var sensor_contents = document.getElementById("sensor_contents");
+          // id = "sensor_contents"な要素がクリックされたら
+          sensor_contents.addEventListener("click", function() {
+            // ジャイロセンサーのアクセス許可をリクエストする
+            DeviceOrientationEvent.requestPermission().then(function(response) {
+              // リクエストが許可されたら
+              if (response === "granted") {
+                // DeviceOrientationが有効化されるので addEventListener
+                window.addEventListener("deviceorientation", onHeadingChange);
+              }
+            }).catch(function(e) {
+              console.log(e);
+            });
+          });
+          // iOS13以外
+
+        } else {
+          // 通常通り、イベントハンドラを追加
+          window.addEventListener("deviceorientation", onHeadingChange);
+        }
+      }
+
+
+  // window.addEventListener("deviceorientation", onHeadingChange);
 
   document.addEventListener("fullscreenchange", onFullscreenChange);
   document.addEventListener("webkitfullscreenchange", onFullscreenChange);
